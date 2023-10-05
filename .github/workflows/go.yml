@@ -31,10 +31,10 @@ jobs:
 
       - name: Build for ${{ matrix.GOOS }}-${{ matrix.GOARCH }}
         run: |
-          GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -C ./src -o ./bin/$(basename $GITHUB_REPOSITORY)
+          GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -C ./src -o ./bin/onewire_exporter
 
-          - name: Upload artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ basename $GITHUB_REPOSITORY }}-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
-          path: ./bin/$(basename $GITHUB_REPOSITORY)
+          name: onewire_exporter-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+          path: ./bin/onewire_exporter
