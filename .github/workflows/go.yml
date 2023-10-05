@@ -31,7 +31,7 @@ jobs:
 
       - name: Build for ${{ matrix.GOOS }}-${{ matrix.GOARCH }}
         run: |
-          GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o $GITHUB_WORKSPACE/bin/$(basename $GITHUB_REPOSITORY) -C ./src
+          GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -C ./src -o $GITHUB_WORKSPACE/bin/$(basename $GITHUB_REPOSITORY)
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
