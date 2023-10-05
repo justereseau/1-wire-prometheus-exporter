@@ -37,4 +37,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: onewire_exporter-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
-          path: ./onewire_exporter
+          path: ./src/onewire_exporter
