@@ -34,7 +34,7 @@ jobs:
           GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -C ./src -o ./onewire_exporter
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: onewire_exporter-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
           path: ./src/onewire_exporter
