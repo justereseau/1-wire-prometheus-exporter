@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/go-kit/log v0.2.1
 	github.com/prometheus/client_golang v1.23.0
-	github.com/prometheus/common v0.65.0
+	github.com/prometheus/common v1.20.3
 )
 
 require (
