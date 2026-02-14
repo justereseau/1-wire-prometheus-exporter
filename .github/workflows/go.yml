@@ -28,7 +28,7 @@ jobs:
         run: |
           go mod -C ./src download
           go mod -C ./src verify
-          go get onewire_exporter/v2
+          go install onewire_exporter/v2@latest
 
       - name: Build for ${{ matrix.GOOS }}-${{ matrix.GOARCH }}
         run: |
