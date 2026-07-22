@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,12 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/version"
+	"github.com/prometheus/common/promslog"
 )
 
 // Define constants
@@ -28,7 +27,7 @@ const (
 // Define parameters
 var (
 	listenAddress = flag.String("web.listen-address", ":9100", "Address to listen on for web interface and telemetry.")
-	logLevel      = flag.String("log.level", "info", "Only log messages with the given severity or above. One of: [debug, info, warn, error, none]")
+	logLevel      = flag.String("log.level", "info", "Only log messages with the given severity or above. One of: [debug, info, warn, error]")
 	sensorPath    = flag.String("devices.path", "/sys/bus/w1/devices/", "Path to the sensor file")
 )
 
@@ -48,11 +47,14 @@ func main() {
 	// Get parameters
 	flag.Parse()
 
-	allowedLogLevel := &promlog.AllowedLevel{}
-	allowedLogLevel.Set(*logLevel)
-	logger := promlog.New(&promlog.Config{Level: allowedLogLevel})
+	allowedLogLevel := promslog.NewLevel()
+	if err := allowedLogLevel.Set(*logLevel); err != nil {
+		promslog.New(&promslog.Config{}).Error("Invalid log level.", "level", *logLevel, "err", err)
+		os.Exit(1)
+	}
+	logger := promslog.New(&promslog.Config{Level: allowedLogLevel})
 
-	level.Info(logger).Log("msg", "Starting "+exporter_name+"_exporter.")
+	logger.Info("Starting " + exporter_name + "_exporter.")
 
 	prometheus.MustRegister(version.NewCollector(exporter_name + "_exporter"))
 
@@ -70,17 +72,17 @@ func main() {
 		handler(w, r, logger)
 	})
 
-	level.Info(logger).Log("msg", "Starting to listen.", "address", *listenAddress)
+	logger.Info("Starting to listen.", "address", *listenAddress)
 	if err := http.ListenAndServe(*listenAddress, nil); err != nil {
-		level.Error(logger).Log("msg", "Failed to start http server.", "err", err)
+		logger.Error("Failed to start http server.", "err", err)
 	}
 }
 
 // HTTP handler for the exporter.
-func handler(w http.ResponseWriter, request *http.Request, logger log.Logger) {
+func handler(w http.ResponseWriter, request *http.Request, logger *slog.Logger) {
 	start := time.Now()
 
-	level.Debug(logger).Log("msg", "Starting scrape")
+	logger.Debug("Starting scrape")
 
 	// Create a new registry for each scrape and register the collector with it.
 	registry := prometheus.NewRegistry()
@@ -90,12 +92,12 @@ func handler(w http.ResponseWriter, request *http.Request, logger log.Logger) {
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(w, request)
 
-	level.Debug(logger).Log("msg", "Scrape done.", "duration", time.Since(start).Seconds())
+	logger.Debug("Scrape done.", "duration", time.Since(start).Seconds())
 }
 
 // Collector is the interface a collector has to implement.
 type collector struct {
-	logger   log.Logger
+	logger   *slog.Logger
 	response http.ResponseWriter
 }
 
@@ -109,7 +111,7 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 
 	data, err := os.ReadFile(*sensorPath + "w1_bus_master1/w1_master_slaves")
 	if err != nil {
-		level.Error(c.logger).Log("msg", "Failed to read sensor file", "err", err)
+		c.logger.Error("Failed to read sensor file", "err", err)
 		return
 	}
 
@@ -123,16 +125,16 @@ func (c collector) Collect(ch chan<- prometheus.Metric) {
 		go func(sensor string, ch chan<- prometheus.Metric, waitAfterMetrics *sync.WaitGroup) {
 			defer waitAfterMetrics.Done()
 
-			level.Debug(c.logger).Log("msg", "Reading sensor", "sensor", sensor)
+			c.logger.Debug("Reading sensor", "sensor", sensor)
 			sensorData, err := os.ReadFile(*sensorPath + sensor + "/temperature")
 			if err != nil {
-				level.Error(c.logger).Log("msg", "Failed to read sensor file", "err", err)
+				c.logger.Error("Failed to read sensor file", "err", err)
 				return
 			}
 
 			temperature, err := strconv.ParseFloat(string(sensorData)[0:len(string(sensorData))-1], 64)
 			if err != nil {
-				level.Error(c.logger).Log("msg", "Failed to parse sensor temperature", "err", err)
+				c.logger.Error("Failed to parse sensor temperature", "err", err)
 				return
 			}
 
